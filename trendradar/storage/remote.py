@@ -7,7 +7,6 @@
 数据流程：下载当天 SQLite → 合并新数据 → 上传回远程
 """
 
-import pytz
 import re
 import shutil
 import sys
@@ -686,7 +685,7 @@ class RemoteStorageBackend(SQLiteStorageMixin, StorageBackend):
         清理远程存储上的过期数据
 
         Args:
-            retention_days: 保留天数（0 表示不清理）
+            retention_days: 保留天数（含今天，0 表示不清理）
 
         Returns:
             删除的数据库文件数量
@@ -695,43 +694,28 @@ class RemoteStorageBackend(SQLiteStorageMixin, StorageBackend):
             return 0
 
         deleted_count = 0
-        cutoff_date = self._get_configured_time() - timedelta(days=retention_days)
+        oldest_kept_date = self._get_configured_time().date() - timedelta(days=retention_days - 1)
 
         try:
-            # 列出远程存储中 news/ 前缀下的所有对象
+            # 只清理本项目按日期存储的热榜和 RSS 数据库。
             paginator = self.s3_client.get_paginator('list_objects_v2')
-            pages = paginator.paginate(Bucket=self.bucket_name, Prefix="news/")
 
             # 收集需要删除的对象键
             objects_to_delete = []
-            deleted_dates = set()
-
-            for page in pages:
-                if 'Contents' not in page:
-                    continue
-
-                for obj in page['Contents']:
-                    key = obj['Key']
-
-                    # 解析日期（格式: news/YYYY-MM-DD.db）
-                    folder_date = None
-                    date_str = None
-                    try:
-                        date_match = re.match(r'news/(\d{4})-(\d{2})-(\d{2})\.db$', key)
-                        if date_match:
-                            folder_date = datetime(
-                                int(date_match.group(1)),
-                                int(date_match.group(2)),
-                                int(date_match.group(3)),
-                                tzinfo=pytz.timezone(self.timezone)
-                            )
-                            date_str = f"{date_match.group(1)}-{date_match.group(2)}-{date_match.group(3)}"
-                    except Exception:
-                        continue
-
-                    if folder_date and folder_date < cutoff_date:
-                        objects_to_delete.append({'Key': key})
-                        deleted_dates.add(date_str)
+            for db_type in ("news", "rss"):
+                pages = paginator.paginate(Bucket=self.bucket_name, Prefix=f"{db_type}/")
+                for page in pages:
+                    for obj in page.get('Contents', []):
+                        key = obj['Key']
+                        date_match = re.fullmatch(rf'{db_type}/(\d{{4}}-\d{{2}}-\d{{2}})\.db', key)
+                        if not date_match:
+                            continue
+                        try:
+                            file_date = datetime.strptime(date_match.group(1), "%Y-%m-%d").date()
+                        except ValueError:
+                            continue
+                        if file_date < oldest_kept_date:
+                            objects_to_delete.append({'Key': key})
 
             # 批量删除对象（每次最多 1000 个）
             if objects_to_delete:
@@ -739,19 +723,18 @@ class RemoteStorageBackend(SQLiteStorageMixin, StorageBackend):
                 for i in range(0, len(objects_to_delete), batch_size):
                     batch = objects_to_delete[i:i + batch_size]
                     try:
-                        self.s3_client.delete_objects(
+                        response = self.s3_client.delete_objects(
                             Bucket=self.bucket_name,
                             Delete={'Objects': batch}
                         )
-                        print(f"[远程存储] 删除 {len(batch)} 个对象")
+                        deleted_count += len(response.get('Deleted', []))
+                        print(f"[远程存储] 删除 {len(response.get('Deleted', []))} 个对象")
+                        for error in response.get('Errors', []):
+                            print(f"[远程存储] 删除失败: {error.get('Key')} ({error.get('Code')})")
                     except Exception as e:
                         print(f"[远程存储] 批量删除失败: {e}")
 
-                deleted_count = len(deleted_dates)
-                for date_str in sorted(deleted_dates):
-                    print(f"[远程存储] 清理过期数据: news/{date_str}.db")
-
-                print(f"[远程存储] 共清理 {deleted_count} 个过期日期数据库文件")
+                print(f"[远程存储] 共清理 {deleted_count} 个过期数据库文件")
 
             return deleted_count
 
