@@ -27,6 +27,11 @@ from trendradar.crawler.reuters import (
     SOURCE_ID as REUTERS_SOURCE_ID,
     parse_reuters_feed,
 )
+from trendradar.crawler.bloomberg import (
+    FEED_URL as BLOOMBERG_FEED_URL,
+    SOURCE_ID as BLOOMBERG_SOURCE_ID,
+    parse_bloomberg_feed,
+)
 
 
 class DataFetcher:
@@ -121,6 +126,7 @@ class DataFetcher:
 
         is_signal = id_value == SIGNAL_SOURCE_ID
         is_reuters = id_value == REUTERS_SOURCE_ID
+        is_bloomberg = id_value == BLOOMBERG_SOURCE_ID
         url = self._source_url(id_value)
 
         proxies = None
@@ -139,8 +145,9 @@ class DataFetcher:
                 response.raise_for_status()
 
                 data_text = response.text
-                if is_reuters:
-                    data_json = parse_reuters_feed(data_text)
+                if is_reuters or is_bloomberg:
+                    parser = parse_reuters_feed if is_reuters else parse_bloomberg_feed
+                    data_json = parser(data_text)
                     data_text = json.dumps(data_json, ensure_ascii=False)
                 else:
                     data_json = json.loads(data_text)
@@ -175,6 +182,8 @@ class DataFetcher:
             return SIGNAL_API_URL
         if source_id == REUTERS_SOURCE_ID:
             return REUTERS_FEED_URL
+        if source_id == BLOOMBERG_SOURCE_ID:
+            return BLOOMBERG_FEED_URL
         return f"{self.api_url}?id={source_id}&latest"
 
     def crawl_websites(

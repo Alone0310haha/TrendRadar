@@ -112,6 +112,11 @@ platforms:
       expected_domain: "news.google.com"
       translate_before_filter: true
       enabled: false                 # Latest Reuters headlines via Google News; see docs/reuters.md.
+    - id: "bloomberg"
+      name: "Bloomberg"
+      expected_domain: "bloomberg.com"
+      translate_before_filter: true
+      enabled: false                 # Official RSS headlines; see docs/bloomberg.md.
 
 
 

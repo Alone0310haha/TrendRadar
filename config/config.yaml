@@ -109,6 +109,10 @@ platforms:
       name: "路透社（Google News）"
       expected_domain: "news.google.com"  # Google News 索引/跳转，发布者校验为 Reuters
       translate_before_filter: true      # 先翻译，再合并到现有主题；按发布时间排序，非热搜排名
+    - id: "bloomberg"
+      name: "彭博社"
+      expected_domain: "bloomberg.com"   # 官方 RSS，链接直接指向彭博社报道
+      translate_before_filter: true      # 先翻译再匹配关键词，按发布时间排序
 
 
 
