@@ -106,6 +106,7 @@ def count_word_frequency(
     is_first_crawl_func: Optional[Callable[[], bool]] = None,
     convert_time_func: Optional[Callable[[str], str]] = None,
     quiet: bool = False,
+    translate_titles_func: Optional[Callable[[Dict], Dict]] = None,
 ) -> Tuple[List[Dict], int]:
     """
     统计词频，支持必须词、频率词、过滤词、全局过滤词，并标记新增标题
@@ -126,6 +127,7 @@ def count_word_frequency(
         is_first_crawl_func: 检测是否是当天第一次爬取的函数
         convert_time_func: 时间格式转换函数
         quiet: 是否静默模式（不打印日志）
+        translate_titles_func: 在模式筛选后翻译标题，返回 {source_id: {原文: 译文}}
 
     Returns:
         Tuple[List[Dict], int]: (统计结果列表, 总标题数)
@@ -210,6 +212,8 @@ def count_word_frequency(
         )
         print(f"当日汇总模式：处理 {total_input_news} 条新闻，模式：{filter_status}")
 
+    title_translations = translate_titles_func(results_to_process) if translate_titles_func else {}
+
     word_stats = {}
     total_titles = 0
     processed_titles = {}
@@ -235,8 +239,10 @@ def count_word_frequency(
                 continue
 
             # 使用统一的匹配逻辑
+            source_translations = title_translations.get(source_id, {})
+            match_title = source_translations.get(title, title)
             matches_frequency_words = matches_word_groups(
-                title, word_groups, filter_words, global_filters
+                match_title, word_groups, filter_words, global_filters
             )
 
             if not matches_frequency_words:
@@ -253,7 +259,7 @@ def count_word_frequency(
             source_mobile_url = title_data.get("mobileUrl", "")
 
             # 找到匹配的词组（防御性转换确保类型安全）
-            title_lower = str(title).lower() if not isinstance(title, str) else title.lower()
+            title_lower = str(match_title).lower()
             for group in word_groups:
                 required_words = group["required"]
                 normal_words = group["normal"]
@@ -346,6 +352,8 @@ def count_word_frequency(
                 word_stats[group_key]["titles"][source_id].append(
                     {
                         "title": title,
+                        "source_id": source_id,
+                        **({"translated_title": match_title} if title in source_translations else {}),
                         "source_name": source_name,
                         "first_time": first_time,
                         "last_time": last_time,

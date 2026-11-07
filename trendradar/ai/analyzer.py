@@ -293,7 +293,7 @@ class AIAnalyzer:
                     for t in titles:
                         if not isinstance(t, dict):
                             continue
-                        title = t.get("title", "")
+                        title = t.get("translated_title") or t.get("title", "")
                         if not title:
                             continue
 

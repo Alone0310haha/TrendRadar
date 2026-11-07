@@ -42,6 +42,13 @@ def prepare_report_data(
         for stat in stats
         for t in stat.get("titles", [])
     }
+    # 原文用于新增/历史匹配；展示复用筛选前译文，避免翻译改变文章身份。
+    translated_titles = {
+        (t.get("source_id"), t["title"]): t["translated_title"]
+        for stat in stats
+        for t in stat.get("titles", [])
+        if t.get("translated_title")
+    }
 
     # 过滤新增标题：只保留在 stats 中存活的标题（即通过了 AI/关键词过滤的标题）
     filtered_new_titles = {}
@@ -76,7 +83,8 @@ def prepare_report_data(
                 ranks = title_data.get("ranks", [])
 
                 processed_title = {
-                    "title": title,
+                    "title": translated_titles.get((source_id, title), title),
+                    **({"translation_applied": True} if (source_id, title) in translated_titles else {}),
                     "source_name": source_name,
                     "time_display": "",
                     "count": 1,
@@ -106,7 +114,8 @@ def prepare_report_data(
         processed_titles = []
         for title_data in stat["titles"]:
             processed_title = {
-                "title": title_data["title"],
+                "title": title_data.get("translated_title") or title_data["title"],
+                **({"translation_applied": True} if title_data.get("translated_title") else {}),
                 "source_name": title_data["source_name"],
                 "time_display": title_data["time_display"],
                 "count": title_data["count"],

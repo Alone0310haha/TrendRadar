@@ -118,12 +118,16 @@ class NotificationDispatcher:
         if scope.get("HOTLIST", True) and display_regions.get("HOTLIST", True):
             for stat_idx, stat in enumerate(report_data.get("stats", [])):
                 for title_idx, title_data in enumerate(stat.get("titles", [])):
+                    if title_data.get("translation_applied"):
+                        continue
                     titles_to_translate.append(title_data.get("title", ""))
                     title_locations.append(("stats", stat_idx, title_idx))
 
             # 2. 新增热点标题
             for source_idx, source in enumerate(report_data.get("new_titles", [])):
                 for title_idx, title_data in enumerate(source.get("titles", [])):
+                    if title_data.get("translation_applied"):
+                        continue
                     titles_to_translate.append(title_data.get("title", ""))
                     title_locations.append(("new_titles", source_idx, title_idx))
 

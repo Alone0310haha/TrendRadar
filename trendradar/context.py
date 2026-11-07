@@ -7,6 +7,7 @@
 
 from datetime import datetime
 from pathlib import Path
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from trendradar.utils.time import (
@@ -76,6 +77,8 @@ class AppContext:
         self.config = config
         self._storage_manager = None
         self._scheduler = None
+        self._filter_translation_cache = {}
+        self._filter_translator = None
 
     # === 配置访问 ===
 
@@ -252,6 +255,55 @@ class AppContext:
 
     # === 统计分析 ===
 
+    def _translate_filter_titles(self, results: Dict) -> Dict:
+        """仅翻译显式启用的平台，用译文匹配关键词，原文仍作为历史记录的键。"""
+        trans_config = self.config.get("AI_TRANSLATION", {})
+        if not trans_config.get("ENABLED", False):
+            return {}
+        source_ids = {
+            source["id"] for source in self.platforms
+            if source.get("translate_before_filter", False)
+        }
+        pending = []
+        translations = {}
+        language = trans_config.get("LANGUAGE", "English")
+        for source_id, titles in results.items():
+            if source_id not in source_ids:
+                continue
+            for title in titles:
+                key = (language, source_id, title)
+                if key in self._filter_translation_cache:
+                    translations.setdefault(source_id, {})[title] = self._filter_translation_cache[key]
+                else:
+                    pending.append((source_id, title))
+        if not pending:
+            return translations
+
+        try:
+            if self._filter_translator is None:
+                self._filter_translator = AITranslator(trans_config, self.config.get("AI", {}))
+            batch_size = max(1, int(trans_config.get("BATCH_SIZE", 100)))
+            interval = max(0, float(trans_config.get("BATCH_INTERVAL", 2)))
+            success_count = 0
+            for start in range(0, len(pending), batch_size):
+                if start and interval:
+                    time.sleep(interval)
+                batch = pending[start:start + batch_size]
+                result = self._filter_translator.translate_batch([title for _, title in batch])
+                for (source_id, title), translated in zip(batch, result.results):
+                    if not translated.success or not translated.translated_text.strip():
+                        continue
+                    text = translated.translated_text.strip()
+                    translations.setdefault(source_id, {})[title] = text
+                    self._filter_translation_cache[(language, source_id, title)] = text
+                    success_count += 1
+            print(f"[筛选前翻译] {success_count}/{len(pending)} 条成功，目标语言：{language}")
+            if success_count < len(pending):
+                print("[筛选前翻译] 未成功翻译的标题将按原文匹配关键词")
+        except Exception as exc:
+            print(f"[筛选前翻译] 翻译异常 ({type(exc).__name__})，未翻译的标题按原文匹配关键词")
+        return translations
+
     def count_frequency(
         self,
         results: Dict,
@@ -281,6 +333,7 @@ class AppContext:
             is_first_crawl_func=self.is_first_crawl,
             convert_time_func=self.convert_time_display,
             quiet=quiet,
+            translate_titles_func=self._translate_filter_titles,
         )
 
     # === 报告生成 ===
