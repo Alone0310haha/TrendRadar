@@ -2174,6 +2174,8 @@ platforms:
 
 **韩国热搜**：内置 `signal-hot` 可直接获取 Signal 第三方热搜榜，点击热词打开 Naver 搜索。它不是 Naver 官方热搜，也不依赖 NewsNow 的平台支持。配置与韩文标题展示见 [Signal 接入说明](docs/signal-hot.md)。
 
+**路透社报道**：内置 `reuters` 获取 Google News 收录的路透社最新报道，先翻译再匹配关键词，并入热点词汇统计。配置与数据范围见 [路透社接入说明](docs/reuters.md)。
+
 > ⚠️ **注意**：平台不是越多越好，建议选择 10-15 个核心平台。过多平台会导致信息过载，反而降低使用体验。
 
 </details>

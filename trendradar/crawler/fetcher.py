@@ -22,6 +22,11 @@ from trendradar.crawler.signal import (
     SOURCE_ID as SIGNAL_SOURCE_ID,
     parse_signal_response,
 )
+from trendradar.crawler.reuters import (
+    FEED_URL as REUTERS_FEED_URL,
+    SOURCE_ID as REUTERS_SOURCE_ID,
+    parse_reuters_feed,
+)
 
 
 class DataFetcher:
@@ -115,7 +120,8 @@ class DataFetcher:
             alias = id_value
 
         is_signal = id_value == SIGNAL_SOURCE_ID
-        url = SIGNAL_API_URL if is_signal else f"{self.api_url}?id={id_value}&latest"
+        is_reuters = id_value == REUTERS_SOURCE_ID
+        url = self._source_url(id_value)
 
         proxies = None
         if self.proxy_url:
@@ -133,10 +139,14 @@ class DataFetcher:
                 response.raise_for_status()
 
                 data_text = response.text
-                data_json = json.loads(data_text)
-                if is_signal:
-                    data_json = parse_signal_response(data_json)
+                if is_reuters:
+                    data_json = parse_reuters_feed(data_text)
                     data_text = json.dumps(data_json, ensure_ascii=False)
+                else:
+                    data_json = json.loads(data_text)
+                    if is_signal:
+                        data_json = parse_signal_response(data_json)
+                        data_text = json.dumps(data_json, ensure_ascii=False)
 
                 status = data_json.get("status", "未知")
                 if status not in ["success", "cache"]:
@@ -159,6 +169,13 @@ class DataFetcher:
                     return None, id_value, alias
 
         return None, id_value, alias
+
+    def _source_url(self, source_id: str) -> str:
+        if source_id == SIGNAL_SOURCE_ID:
+            return SIGNAL_API_URL
+        if source_id == REUTERS_SOURCE_ID:
+            return REUTERS_FEED_URL
+        return f"{self.api_url}?id={source_id}&latest"
 
     def crawl_websites(
         self,
@@ -205,7 +222,7 @@ class DataFetcher:
                             print(f"⚠️ 安全警告: {name}({id_value}) 返回数据未通过域名安全校验！")
                             print(f"   预期域名: https://*.{expected_domain}")
                             print(f"   异常来源: {bad_reason}")
-                            source_url = SIGNAL_API_URL if id_value == SIGNAL_SOURCE_ID else self.api_url
+                            source_url = self._source_url(id_value)
                             print(f"   当前 API 地址: {source_url}")
                             print(f"   该平台数据已丢弃，请检查 API 来源是否可信")
                             failed_ids.append(id_value)

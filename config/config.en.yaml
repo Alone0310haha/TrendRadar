@@ -107,6 +107,11 @@ platforms:
       expected_domain: "naver.com"    # Search links use Naver; rankings are provided by Signal.
       translate_before_filter: true  # Translate before matching keywords (requires ai_translation.enabled).
       enabled: false                 # See docs/signal-hot.md for setup.
+    - id: "reuters"
+      name: "Reuters (Google News)"
+      expected_domain: "news.google.com"
+      translate_before_filter: true
+      enabled: false                 # Latest Reuters headlines via Google News; see docs/reuters.md.
 
 
 

@@ -105,6 +105,10 @@ platforms:
       name: "Signal 韩国热搜（第三方）"
       expected_domain: "naver.com"     # 热词链接指向 Naver 搜索，榜单来源为 Signal
       translate_before_filter: true   # 先翻译，再按同一套中文关键词归入热点词汇统计
+    - id: "reuters"
+      name: "路透社（Google News）"
+      expected_domain: "news.google.com"  # Google News 索引/跳转，发布者校验为 Reuters
+      translate_before_filter: true      # 先翻译，再合并到现有主题；按发布时间排序，非热搜排名
 
 
 
