@@ -2,7 +2,7 @@
 """
 数据获取器模块
 
-负责从 NewsNow API 抓取新闻数据，支持：
+负责从 NewsNow API 和内置直连源抓取新闻数据，支持：
 - 单个平台数据获取
 - 批量平台数据爬取
 - 自动重试机制
@@ -16,6 +16,12 @@ from typing import Dict, List, Tuple, Optional, Union
 from urllib.parse import urlparse
 
 import requests
+
+from trendradar.crawler.signal import (
+    API_URL as SIGNAL_API_URL,
+    SOURCE_ID as SIGNAL_SOURCE_ID,
+    parse_signal_response,
+)
 
 
 class DataFetcher:
@@ -108,7 +114,8 @@ class DataFetcher:
             id_value = id_info
             alias = id_value
 
-        url = f"{self.api_url}?id={id_value}&latest"
+        is_signal = id_value == SIGNAL_SOURCE_ID
+        url = SIGNAL_API_URL if is_signal else f"{self.api_url}?id={id_value}&latest"
 
         proxies = None
         if self.proxy_url:
@@ -127,6 +134,9 @@ class DataFetcher:
 
                 data_text = response.text
                 data_json = json.loads(data_text)
+                if is_signal:
+                    data_json = parse_signal_response(data_json)
+                    data_text = json.dumps(data_json, ensure_ascii=False)
 
                 status = data_json.get("status", "未知")
                 if status not in ["success", "cache"]:
@@ -195,7 +205,8 @@ class DataFetcher:
                             print(f"⚠️ 安全警告: {name}({id_value}) 返回数据未通过域名安全校验！")
                             print(f"   预期域名: https://*.{expected_domain}")
                             print(f"   异常来源: {bad_reason}")
-                            print(f"   当前 API 地址: {self.api_url}")
+                            source_url = SIGNAL_API_URL if id_value == SIGNAL_SOURCE_ID else self.api_url
+                            print(f"   当前 API 地址: {source_url}")
                             print(f"   该平台数据已丢弃，请检查 API 来源是否可信")
                             failed_ids.append(id_value)
                             continue

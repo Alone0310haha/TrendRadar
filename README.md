@@ -2172,6 +2172,8 @@ platforms:
 
 > 💡 **快捷方式**：如果不会看源代码，可以复制他人整理好的 [平台配置汇总](https://github.com/sansan0/TrendRadar/issues/95)
 
+**韩国热搜**：内置 `signal-hot` 可直接获取 Signal 第三方热搜榜，点击热词打开 Naver 搜索。它不是 Naver 官方热搜，也不依赖 NewsNow 的平台支持。配置与韩文标题展示见 [Signal 接入说明](docs/signal-hot.md)。
+
 > ⚠️ **注意**：平台不是越多越好，建议选择 10-15 个核心平台。过多平台会导致信息过载，反而降低使用体验。
 
 </details>

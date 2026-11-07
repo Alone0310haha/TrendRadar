@@ -49,6 +49,7 @@ schedule:
 #
 # 数据来源于 newsnow 开源项目: https://github.com/ourongxing/newsnow
 # 你可以自行部署 newsnow 并将 api_url 指向你自己的实例
+# signal-hot 是内置直连源，直接获取 Signal 第三方韩国热搜，不使用 api_url
 #
 # enabled: 是否启用热榜抓取（总开关）
 # api_url: 热榜数据 API 地址（可选，留空使用默认地址）
@@ -99,6 +100,9 @@ platforms:
     - id: "zhihu"
       name: "知乎"
       expected_domain: "zhihu.com"
+    - id: "signal-hot"
+      name: "Signal 韩国热搜（第三方）"
+      expected_domain: "naver.com"     # 热词链接指向 Naver 搜索，榜单来源为 Signal
 
 
 
@@ -239,13 +243,13 @@ display:
                                       # 注：热点词汇统计中的新增标记🆕不受此配置影响
 
     rss: true                         # RSS 订阅区域（true=显示并分析, false=隐藏并跳过分析）
-    standalone: false                 # 独立展示区：完整热榜/RSS，不受关键词过滤（true=显示, false=隐藏）
+    standalone: true                  # 独立展示区：完整热榜/RSS，不受关键词过滤（true=显示, false=隐藏）
     ai_analysis: true                 # AI 分析区域（true=显示, false=隐藏）
 
   # 独立展示区：将指定平台/RSS 完整展示，不受关键词过滤
   # 推送展示由 regions.standalone 控制，AI 分析由 ai_analysis.include_standalone 控制
   standalone:
-    platforms: ["zhihu", "wallstreetcn-hot"]     # 热榜平台 ID 列表（如 ["zhihu", "weibo"]）
+    platforms: ["signal-hot"]                   # 完整展示韩文热词，避免被中文关键词过滤
     rss_feeds: []                                # RSS 源 ID 列表（如 ["hacker-news"]）
     max_items: 20                                # 每个源最多展示条数（0=不限制）
 

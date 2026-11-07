@@ -49,6 +49,7 @@ schedule:
 #
 # Data sourced from the open-source newsnow project: https://github.com/ourongxing/newsnow
 # You may self-host newsnow and point api_url to your own instance.
+# signal-hot is a built-in direct source for Signal's third-party Korean trends; it bypasses api_url.
 #
 # enabled: whether to crawl hot lists (master switch)
 # api_url: hot-list data API URL (optional; leave empty to use the default)
@@ -100,6 +101,10 @@ platforms:
     - id: "zhihu"
       name: "Zhihu"
       expected_domain: "zhihu.com"
+    - id: "signal-hot"
+      name: "Signal Korea Trends (third-party)"
+      expected_domain: "naver.com"    # Search links use Naver; rankings are provided by Signal.
+      enabled: false                 # See docs/signal-hot.md for unfiltered display settings.
 
 
 
